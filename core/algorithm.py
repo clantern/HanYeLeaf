@@ -22,7 +22,7 @@ class QueueEntry:
     kind: str = "LEITNER"
 
 
-class HanziLeafSystem:
+class HanYeLeafSystem:
     def __init__(
         self,
         *,
@@ -116,3 +116,5 @@ class HanziLeafSystem:
 
         position = min(len(self.queue), max(0, delay))
         self.queue.insert(position, QueueEntry(item_id=item_id, kind=kind))
+
+

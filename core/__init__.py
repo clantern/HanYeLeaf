@@ -1,3 +1,3 @@
-from .algorithm import HanziLeafSystem, Item, QueueEntry
+from .algorithm import HanYeLeafSystem, Item, QueueEntry
 
-__all__ = ["HanziLeafSystem", "Item", "QueueEntry"]
+__all__ = ["HanYeLeafSystem", "Item", "QueueEntry"]

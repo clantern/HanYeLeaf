@@ -1,8 +1,8 @@
-from core.algorithm import HanziLeafSystem
+from core.algorithm import HanYeLeafSystem
 
 
 def test_new_item_initializes_part_weakness():
-    system = HanziLeafSystem()
+    system = HanYeLeafSystem()
     item = system.add_item("汉字", ["汉", "字"])
 
     system.review(item.id, True, now=1)
@@ -14,7 +14,7 @@ def test_new_item_initializes_part_weakness():
 
 
 def test_weak_part_enqueues_sibling_as_leaf():
-    system = HanziLeafSystem(weakness_threshold=1, leaf_delay=0)
+    system = HanYeLeafSystem(weakness_threshold=1, leaf_delay=0)
     first = system.add_item("汉字", ["汉", "字"])
     second = system.add_item("汉人", ["汉", "人"])
 
