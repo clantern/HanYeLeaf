@@ -29,30 +29,13 @@ Reviewing items that share a weak part, spaced a few cards apart, improves later
 | Piece | State |
 |-------|-------|
 | Algorithm spec | Draft, see [ALGORITHM.md](ALGORITHM.md) for the rules and open questions |
-| Python terminal prototype | Working. It predates the spec and differs from it: it uses a continuous weakness boost instead of a threshold, plus a guardrail that limits how many cards in a row can be sibling-driven |
-| Vocabulary | A small hand-typed starter list (a few hundred words). It is not a verified dataset, so check its pinyin before relying on it |
+| Python terminal prototype | Working |
+| Vocabulary | Not started |
 | Real word-list pipeline | Not started |
 | Review log and experiments | Not started |
 | Web app | Not started |
 
-## Try the prototype
 
-Requires Python 3.8+ and has no dependencies.
-
-```
-python3 hanzi_branch.py
-```
-
-Press Enter to reveal the answer, then `y` if you knew it or `n` if not. Progress is saved to `progress.json`.
-
-| Flag | Effect |
-|------|--------|
-| `--debug` | Show why each card was picked |
-| `--stats` | Show box counts and weak characters, then exit |
-| `--reset` | Delete saved progress first |
-| `--vocab FILE` | Use a different word list |
-
-The word list is a CSV with the columns `word,pinyin,meaning`, in the order you want words introduced. Lines starting with `#` are ignored.
 
 ## Roadmap
 
