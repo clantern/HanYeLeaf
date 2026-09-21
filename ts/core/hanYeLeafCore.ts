@@ -41,29 +41,6 @@ export interface SystemCore {
   rng: RNG;
 }
 
-export interface TraceEvent {
-  action: "add_item" | "review";
-  question?: string;
-  parts?: string[];
-  answer?: string;
-  item_id?: number;
-  success?: boolean;
-  now?: number;
-  kind?: ReviewKind;
-}
-
-export interface TraceStep {
-  step: number;
-  action: string;
-  item_id?: number;
-  success?: boolean;
-  kind?: ReviewKind;
-  now?: number;
-  items: Item[];
-  part_weakness: Record<string, number>;
-  queue: QueueEntry[];
-}
-
 export const DEFAULT_BOX_STALE_TIMES: Record<number, number> = {
   0: 0,
   1: 60,
@@ -72,11 +49,6 @@ export const DEFAULT_BOX_STALE_TIMES: Record<number, number> = {
   4: 604800,
   5: 2592000,
 };
-
-const cloneQueue = (queue: QueueEntry[]): QueueEntry[] =>
-  queue.map((entry) => ({ item_id: entry.item_id, kind: entry.kind }));
-
-const cloneState = (state: SystemState): SystemState => JSON.parse(JSON.stringify(state)) as SystemState;
 
 export function createSystem(
   overrides: Partial<SystemState> = {},
@@ -145,10 +117,7 @@ export function enqueueSibling(state: SystemState, itemId: number, kind: ReviewK
   const existing = state.queue.filter((entry) => entry.item_id === itemId);
   const existingKind = existing[0]?.kind ?? kind;
 
-  for (const entry of existing) {
-    state.queue = state.queue.filter((candidate) => candidate !== entry);
-  }
-
+  state.queue = state.queue.filter((entry) => entry.item_id !== itemId);
   const position = Math.min(state.queue.length, Math.max(0, delay));
   state.queue.splice(position, 0, { item_id: itemId, kind: existingKind });
 }
@@ -189,19 +158,12 @@ export function review(
 
   if (!item.introduced) {
     item.introduced = true;
-    for (const part of item.parts) {
-      if (!(part in state.part_weakness)) {
-        state.part_weakness[part] = state.weakness_initial;
-      }
-    }
   }
 
   if (kind === "LEITNER") {
-    if (success) {
-      item.box = Math.min(item.box + 1, state.highest_box);
-    } else {
-      item.box = Math.max(item.box - state.box_drop, 0);
-    }
+    item.box = success
+      ? Math.min(item.box + 1, state.highest_box)
+      : Math.max(item.box - state.box_drop, 0);
     item.last_reviewed = now;
   } else if (kind !== "LEAF") {
     throw new Error(`Unknown review kind: ${kind}`);
@@ -211,7 +173,9 @@ export function review(
 
   for (const part of item.parts) {
     const oldWeakness = state.part_weakness[part] ?? state.weakness_initial;
-    state.part_weakness[part] = success ? oldWeakness * state.weakness_decay : oldWeakness + state.weakness_increment;
+    state.part_weakness[part] = success
+      ? oldWeakness * state.weakness_decay
+      : oldWeakness + state.weakness_increment;
   }
 
   for (const part of item.parts) {
@@ -226,61 +190,24 @@ export function review(
   return item;
 }
 
-export function snapshotState(state: SystemState): { items: Item[]; part_weakness: Record<string, number>; queue: QueueEntry[] } {
-  return {
-    items: itemList(state),
-    part_weakness: { ...state.part_weakness },
-    queue: cloneQueue(state.queue),
-  };
-}
+export function scheduleQueue(core: SystemCore, now: number): QueueEntry[] {
+  const state = core.state;
+  const queuedIds = new Set(state.queue.map((entry) => entry.item_id));
+  const newItems = itemList(state).filter((item) => !item.introduced && !queuedIds.has(item.id));
+  const staleItems = itemList(state)
+    .filter((item) => item.introduced && isStale(state, item, now) && !queuedIds.has(item.id))
+    .sort((left, right) => {
+      const leftAge = now - (left.last_reviewed ?? now);
+      const rightAge = now - (right.last_reviewed ?? now);
+      return rightAge - leftAge;
+    });
 
-export function traceEventSequence(core: SystemCore, events: TraceEvent[]): TraceStep[] {
-  const live = { state: cloneState(core.state), clock: core.clock, rng: core.rng };
-  const trace: TraceStep[] = [];
-
-  for (let index = 0; index < events.length; index += 1) {
-    const event = events[index];
-    const stepNumber = index + 1;
-    const step: TraceStep = {
-      step: stepNumber,
-      action: event.action,
-      items: [],
-      part_weakness: {},
-      queue: [],
-    };
-
-    if (event.action === "add_item") {
-      const item = addItem(live, event.question ?? "", event.parts ?? [], event.answer ?? "");
-      step.item_id = item.id;
-    } else if (event.action === "review") {
-      const item = review(live, event.item_id ?? 0, event.success ?? false, {
-        now: event.now,
-        kind: event.kind ?? "LEITNER",
-      });
-      step.item_id = item.id;
-      step.success = event.success;
-      step.kind = event.kind ?? "LEITNER";
-      step.now = event.now;
-    }
-
-    const snapshot = snapshotState(live.state);
-    step.items = snapshot.items;
-    step.part_weakness = snapshot.part_weakness;
-    step.queue = snapshot.queue;
-    trace.push(step);
+  for (const item of newItems.slice(0, state.new_limit)) {
+    state.queue.push({ item_id: item.id, kind: "LEITNER" });
+  }
+  for (const item of staleItems.slice(0, state.review_limit)) {
+    state.queue.push({ item_id: item.id, kind: "LEITNER" });
   }
 
-  return trace;
-}
-
-export const demoEvents: TraceEvent[] = [
-  { action: "add_item", question: "汉字", parts: ["汉", "字"], answer: "" },
-  { action: "add_item", question: "汉人", parts: ["汉", "人"], answer: "" },
-  { action: "review", item_id: 2, success: true, now: 1, kind: "LEITNER" },
-  { action: "review", item_id: 1, success: false, now: 2, kind: "LEITNER" },
-  { action: "review", item_id: 2, success: true, now: 3, kind: "LEAF" },
-];
-
-export function demoTrace(): TraceStep[] {
-  return traceEventSequence(createSystem({ weakness_threshold: 1, leaf_delay: 0 }), demoEvents);
+  return state.queue;
 }

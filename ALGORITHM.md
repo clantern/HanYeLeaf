@@ -2,11 +2,11 @@
 
 ---
 
-This algorithm follows the tenets of the Leitner Box system, with additional features that help with learning material in character-based languages like Chinese or Japanese, where items are built from smaller parts that recur across many items. It may have usage in cases where certain items have common concepts, such as a set of flashcards where diseases are items and affected systems are parts.
+This algorithm follows the tenets of the Leitner Box system, with additional features for material whose items are built from smaller parts that recur across many items. It may also be used where items share concepts, such as flashcards about diseases and affected systems.
 
 ## Data
 
-Learning material is stored as **items** made of **parts** (for example, words made of characters). Items are ordered into a progression for the user, such as by difficulty or importance. Each item has a unique question and answer. Unique parts are stored in a separate list.
+Learning material is stored as **items** made of **parts**. Items are ordered into a progression for the user, such as by difficulty or importance. Each item has a unique question and answer. Unique parts are stored in a separate list.
 
 An item is **introduced** the first time it is presented to the user.
 
@@ -32,7 +32,7 @@ The algorithm keeps this state:
 
 ## Leaf System
 
-The Leaf part of the algorithm recognizes when recall is inhibited by a lack of knowledge of a specific part of an item. For example, if a user fails on the items 汉字, 汉人 and 汉族, the part 汉 is targeted for association building.
+The Leaf part of the algorithm recognizes when recall is inhibited by a lack of knowledge of a specific part of an item. When several related items are missed, their shared parts are targeted for association building.
 
 1. When an item is introduced, each of its parts that is not yet in the part list is added with a `weakness` of 1.
 2. Whenever the user evaluates an item (whether it was presented as a Leitner review or as a Leaf presentation, see step 3), every part of that item is updated:
