@@ -65,7 +65,3 @@ Issues and critique are welcome, especially:
 - flaws in the algorithm's reasoning
 - real-world results, including negative ones
 - ideas for testing the hypothesis with real learners
-
-## License
-
-<!-- TODO: choose a license (MIT or Apache-2.0 are common choices) and add a LICENSE file -->
